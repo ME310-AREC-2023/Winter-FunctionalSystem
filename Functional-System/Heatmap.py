@@ -9,6 +9,7 @@ import readPosText  # local lib
 import pullPos_InfluxDB as getPositions
 
 from simpleimage import SimpleImage
+from PIL import Image
 
 # image constants
 image_xy_zero = (670, 0)
@@ -83,6 +84,27 @@ def plotPoints(df, mat):
             # add to existing B&W heatmap
             # out.increment_rgb(x, y, z_const, z_const, z_const)
             mat[x,y] += z_const
+
+def overlayOnBackground():
+    c = 0.5
+    cutoff = 40
+    color = Image.open("Color.jpg")
+    out = Image.open("Gray.jpg")
+    back = Image.open("RoomLayout1.jpg")
+    h = 1000
+    w = 1000
+    for y in range(h):
+        for x in range(w):
+            rbase, gbase, bbase = back.getpixel((x, y))
+            threshold, g, b = out.getpixel((x, y))
+            rn, gn, bn = color.getpixel((x, y))
+            if threshold < cutoff:
+                c = 0.5 * (threshold/cutoff)**1.5
+            red = int((rbase + c * rn) / (1 + c))
+            green = int((gbase + c * gn) / (1 + c))
+            blue = int((bbase + c * bn) / (1 + c))
+            back.putpixel((x, y), (red, green, blue))
+    back.show()
 
 def main():
     args = sys.argv[1:]
