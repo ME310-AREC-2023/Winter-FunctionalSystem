@@ -4,6 +4,7 @@ import os
 import sys
 import math
 import numpy
+import readPosText # local lib
 
 from simpleimage import SimpleImage
 
@@ -62,15 +63,7 @@ def main():
     points = []
 
     # open the file, read in the positions
-    with open("positions.txt") as f:
-        for line in f:
-            linex_extract = line.split("x=")
-            x_p = -int(linex_extract[1][:5])/10
-            liney_extract = line.split("y=")
-            y_p = int(liney_extract[1][:4])/10
-            liney_extract = line.split("q=")
-            q = 100*1/int(liney_extract[1][:2])
-            points.append((q, x_p, y_p))
+    points = readPosText.read_DTRLS_logfile("positions.txt")
 
     out = SimpleImage.blank(w,h, 'black') # create an empty image
 
