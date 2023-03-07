@@ -199,6 +199,15 @@ class SimpleImage(object):
         """
         self.px[x, y] = (red, green, blue)
 
+    def increment_rgb(self, x, y, red, green, blue):
+        """
+        Change the pixel at the given x,y to have
+        increase the given red/green/blue values without
+        requiring a separate pixel object.
+        """
+        (base_red, base_green, base_blue) = self.px[x, y]
+        self.px[x, y] = (base_red + red, base_green + green, base_blue + blue)
+
     def get_pix(self, x, y):
         """Get pix RGB tuple (200, 100, 50) for the given x,y."""
         return self.px[x, y]
@@ -210,6 +219,10 @@ class SimpleImage(object):
     def show(self):
         """Displays the image using an external utility."""
         self.pil_image.show()
+
+    def save(self, filename):
+        """Saves the image to specified filename"""
+        self.pil_image.save(filename)
 
 
 def main():

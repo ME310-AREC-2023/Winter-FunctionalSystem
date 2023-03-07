@@ -86,9 +86,7 @@ def main():
                 z_const = z_amp(x, y, s, mx, my)
 
                 # add to existing B&W heatmap
-                pix = out.get_pixel(x, y)
-                new_pix = (pix.red + z_const, pix.green + z_const, pix.blue + z_const)
-                out.set_pix(x, y, new_pix)
+                out.increment_rgb(x, y, z_const, z_const, z_const)
 
 
     for y in range(h):
@@ -99,7 +97,8 @@ def main():
             else:
                 new_pix = rgb(0, 255, pix.red)
                 out.set_pix(x, y, new_pix)
-    out.show()
+    # out.show() # programaticallly save it instead
+    out.save('images/MaxTest.jpg')
 
 if __name__ == '__main__':
     main()
