@@ -5,10 +5,13 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 from flightsql import FlightSQLClient
 import pandas as pd
 
+# "static" variable
+# query_client = FlightSQLClient()
+
 query = """SELECT *
 FROM "mqtt_consumer"
 WHERE
-time >= now() - interval '30 minutes'
+time >= now() - interval '5 minutes'
 AND
 ("position_x" IS NOT NULL)"""
 
@@ -29,7 +32,9 @@ def pullData(query_client):
     #show data
     data = reader.read_all()
     df = data.to_pandas().sort_values(by="time")
-    # print(df)
+    # df = df.mutate(q = 100/int(p))
+    # df['q'] = df.transform(lambda x: 100/x['position_quality'])
+    print(df)
     # df = df.select() #limit data?
     return df #send it back up
 
@@ -37,7 +42,9 @@ def pullData(query_client):
 def main():
     client = init_client()
 
-    pullData(client)
+    df = pullData(client)
+    print(df.info())
+    print(df.head())
 
 if __name__ == '__main__':
     main()

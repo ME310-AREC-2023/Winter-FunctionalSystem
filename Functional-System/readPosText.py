@@ -13,8 +13,9 @@ def read_DTRLS_logfile(filename):
             y_p = int(liney_extract[1][:4])/10
             liney_extract = line.split("q=")
             q = 100*1/int(liney_extract[1][:2])
+            pos_qual = int(liney_extract[1][:2])
             points.append((q, x_p, y_p))
-            new_df = pd.DataFrame({'position_x': [x_p], 'position_y': [y_p], 'position_quality':[q]})
+            new_df = pd.DataFrame({'position_x': [x_p], 'position_y': [y_p], 'position_quality':[pos_qual]})
             df = pd.concat([df, new_df], ignore_index=True, axis=0, join='outer')
     # print(df)
     return df

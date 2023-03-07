@@ -5,10 +5,15 @@ import sys
 import math
 import numpy as np
 import pandas as pd
-import readPosText # local lib
+import readPosText  # local lib
+import pullPos_InfluxDB as getPositions
 
 from simpleimage import SimpleImage
 
+# image constants
+image_xy_zero = (670, 0)
+w = 1676
+h = 1373
 
 
 def z_amp(x, y, s, mx, my):
@@ -31,9 +36,15 @@ def z_radius(s):
     """
     Define the maxim radius for which `z_amp` is non-zero
     """
-    mag = 0.3 * 255/(s**2)
-    radius = math.sqrt((2*(30*s)**2) * math.log(mag))
-    return int(round(radius *1.25)) # include a fudge factor
+    if (s > 5.3):
+        print(f'R limilted, s = {s}')
+        return int(225)
+    else:
+        print(f's = {s}')
+        mag = 0.3 * 255/(s**2)
+        # print(s, mag)
+        radius = math.sqrt(np.abs((2*(30*s)**2) * math.log(mag)))
+        return int(round(radius *1.25)) # include a fudge factor
 
 def rgb(minimum, maximum, value):
     """
@@ -57,13 +68,15 @@ def rgb(minimum, maximum, value):
     return r, g, b
 
 def plotPoints(df, mat):
-    s = int(df['position_quality'])
-    mx = int(df['position_x'])
-    my = int(df['position_y'])
+    s = 100/df['position_quality'] # extra transform
+    mx = int(df['position_x'] + image_xy_zero[0])
+    my = int(df['position_y'] + image_xy_zero[1])
     radius = z_radius(s) #how far do we need to search?
 
     for y in range(my - radius, my + radius):
         for x in range(mx - radius, mx + radius):
+            if (x < 0 or x >= w or y < 0 or y >= h):
+                continue #don't break if we are outside bounds
             # calculate new value to add
             z_const = z_amp(x, y, s, mx, my)
 
@@ -73,13 +86,13 @@ def plotPoints(df, mat):
 
 def main():
     args = sys.argv[1:]
-    w = 1000
-    h = 1000
     out = SimpleImage.blank(w, h, 'black')
     points_df = pd.DataFrame()
 
     # open the file, read in the positions
-    points_df = readPosText.read_DTRLS_logfile("positions.txt")
+    # points_df = readPosText.read_DTRLS_logfile("positions.txt")
+    iDB_client = getPositions.init_client()
+    points_df = getPositions.pullData(iDB_client)
 
     mat = np.zeros((w,h))
     out = SimpleImage.blank(w,h, 'black') # create an empty image
@@ -97,7 +110,7 @@ def main():
                 new_pix = rgb(0, 255, pix)
                 out.set_pix(x, y, new_pix)
     # out.show() # programaticallly save it instead
-    out.save('images/MaxTest.jpg')
+    out.save('images/DWM_Test1.jpg')
 
 if __name__ == '__main__':
     main()
