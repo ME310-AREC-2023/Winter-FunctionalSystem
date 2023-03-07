@@ -56,6 +56,21 @@ def rgb(minimum, maximum, value):
         b = int(b * value/t)
     return r, g, b
 
+def plotPoints(df, mat):
+    s = int(df['position_quality'])
+    mx = int(df['position_x'])
+    my = int(df['position_y'])
+    radius = z_radius(s) #how far do we need to search?
+
+    for y in range(my - radius, my + radius):
+        for x in range(mx - radius, mx + radius):
+            # calculate new value to add
+            z_const = z_amp(x, y, s, mx, my)
+
+            # add to existing B&W heatmap
+            # out.increment_rgb(x, y, z_const, z_const, z_const)
+            mat[x,y] += z_const
+
 def main():
     args = sys.argv[1:]
     w = 1000
@@ -68,21 +83,8 @@ def main():
 
     mat = np.zeros((w,h))
     out = SimpleImage.blank(w,h, 'black') # create an empty image
-
-    for index, row in points_df.iterrows():
-        s = int(row['position_quality'])
-        mx = int(row['position_x'])
-        my = int(row['position_y'])
-        radius = z_radius(s) #how far do we need to search?
-
-        for y in range(my - radius, my + radius):
-            for x in range(mx - radius, mx + radius):
-                # calculate new value to add
-                z_const = z_amp(x, y, s, mx, my)
-
-                # add to existing B&W heatmap
-                # out.increment_rgb(x, y, z_const, z_const, z_const)
-                mat[x,y] += z_const
+    
+    points_df.apply(lambda x: plotPoints(x, mat), axis = 1)
 
 
     for y in range(h):
