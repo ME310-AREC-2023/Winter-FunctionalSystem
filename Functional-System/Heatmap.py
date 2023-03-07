@@ -43,6 +43,14 @@ def z_amp(x, y, s, mx, my):
     z = round(mag*math.exp(-((mx - x)**2 + (my - y)**2)/(2*(30*s)**2)))
     return z
 
+def z_radius(s):
+    """
+    Define the maxim radius for which `z_amp` is non-zero
+    """
+    mag = 0.3 * 255/(s**2)
+    radius = math.sqrt((2*(30*s)**2) * math.log(mag))
+    return int(round(radius *1.25)) # include a fudge factor
+
 def rgb(minimum, maximum, value):
     """
     >>> rgb(0, 255, 125)
@@ -92,31 +100,33 @@ def main():
             points.append((q, x_p, y_p))
 
     imgs = []
-    for point in points:
-        s = point[0]
-        mx = point[1]
-        my = point[2]
-        img = SimpleImage.blank(w, h, 'black')
-        for y in range(h):
-            for x in range(w):
-                z_const = z_amp(x, y, s, mx, my)
-                z = (z_const, z_const, z_const)
-                img.set_pix(x, y, z)
-        imgs.append(img)
+    out = SimpleImage.blank(w,h, 'black') # create an empty image
 
-    for img in imgs:
-        for y in range(h):
-            for x in range(w):
+    for point in points:
+        s = int(point[0])
+        mx = int(point[1])
+        my = int(point[2])
+        radius = z_radius(s) #how far do we need to search?
+
+        for y in range(my - radius, my + radius):
+            for x in range(mx - radius, mx + radius):
+                # calculate new value to add
+                z_const = z_amp(x, y, s, mx, my)
+
+                # add to existing B&W heatmap
                 pix = out.get_pixel(x, y)
-                pix_add = img.get_pixel(x, y)
-                new_pix = (pix.red + pix_add.red, pix.green + pix_add.green, pix.blue + pix_add.blue)
+                new_pix = (pix.red + z_const, pix.green + z_const, pix.blue + z_const)
                 out.set_pix(x, y, new_pix)
+
 
     for y in range(h):
         for x in range(w):
             pix = out.get_pixel(x, y)
-            new_pix = rgb(0, 255, pix.red)
-            out.set_pix(x, y, new_pix)
+            if (pix.red == 0):
+                continue #don't recalculate/reset pixel
+            else:
+                new_pix = rgb(0, 255, pix.red)
+                out.set_pix(x, y, new_pix)
     out.show()
 
 if __name__ == '__main__':
