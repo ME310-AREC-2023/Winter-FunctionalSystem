@@ -6,9 +6,11 @@ from flightsql import FlightSQLClient
 import pandas as pd
 
 query = """SELECT *
-FROM 'census'
-WHERE time >= now() - interval '24 hours'
-AND ('bees' IS NOT NULL OR 'ants' IS NOT NULL)"""
+FROM "mqtt_consumer"
+WHERE
+time >= now() - interval '30 minutes'
+AND
+("position_x" IS NOT NULL)"""
 
 
 def init_client():
@@ -16,7 +18,7 @@ def init_client():
     query_client = FlightSQLClient(
         host = "us-east-1-1.aws.cloud2.influxdata.com",
         token = os.environ.get("INFLUXDB_TOKEN"),
-        metadata={"bucket-name": "test-Upload"}
+        metadata={"bucket-name": "test-UWB-tags"}
     )
     return query_client
 def pullData(query_client):
@@ -27,4 +29,15 @@ def pullData(query_client):
     #show data
     data = reader.read_all()
     df = data.to_pandas().sort_values(by="time")
-    print(df)
+    # print(df)
+    # df = df.select() #limit data?
+    return df #send it back up
+
+# test harness
+def main():
+    client = init_client()
+
+    pullData(client)
+
+if __name__ == '__main__':
+    main()

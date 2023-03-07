@@ -3,7 +3,8 @@
 import os
 import sys
 import math
-import numpy
+import numpy as np
+import pandas as pd
 import readPosText # local lib
 
 from simpleimage import SimpleImage
@@ -60,17 +61,18 @@ def main():
     w = 1000
     h = 1000
     out = SimpleImage.blank(w, h, 'black')
-    points = []
+    points_df = pd.DataFrame()
 
     # open the file, read in the positions
-    points = readPosText.read_DTRLS_logfile("positions.txt")
+    points_df = readPosText.read_DTRLS_logfile("positions.txt")
 
+    mat = np.zeros((w,h))
     out = SimpleImage.blank(w,h, 'black') # create an empty image
 
-    for point in points:
-        s = int(point[0])
-        mx = int(point[1])
-        my = int(point[2])
+    for index, row in points_df.iterrows():
+        s = int(row['position_quality'])
+        mx = int(row['position_x'])
+        my = int(row['position_y'])
         radius = z_radius(s) #how far do we need to search?
 
         for y in range(my - radius, my + radius):
@@ -79,16 +81,18 @@ def main():
                 z_const = z_amp(x, y, s, mx, my)
 
                 # add to existing B&W heatmap
-                out.increment_rgb(x, y, z_const, z_const, z_const)
+                # out.increment_rgb(x, y, z_const, z_const, z_const)
+                mat[x,y] += z_const
 
 
     for y in range(h):
         for x in range(w):
-            pix = out.get_pixel(x, y)
-            if (pix.red == 0):
+            # pix = out.get_pixel(x, y)
+            pix = mat[x,y]
+            if (abs(pix) < 0.01):
                 continue #don't recalculate/reset pixel
             else:
-                new_pix = rgb(0, 255, pix.red)
+                new_pix = rgb(0, 255, pix)
                 out.set_pix(x, y, new_pix)
     # out.show() # programaticallly save it instead
     out.save('images/MaxTest.jpg')
