@@ -11,7 +11,7 @@ import pandas as pd
 query = """SELECT *
 FROM "mqtt_consumer"
 WHERE
-time >= now() - interval '5 minutes'
+time >= timestamp '2023-03-07T23:00:00.000Z' AND time <= timestamp '2023-03-07T23:20:00.000Z'
 AND
 ("position_x" IS NOT NULL)"""
 

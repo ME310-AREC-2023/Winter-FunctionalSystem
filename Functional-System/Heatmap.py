@@ -38,10 +38,10 @@ def z_radius(s):
     Define the maxim radius for which `z_amp` is non-zero
     """
     if (s > 5.3):
-        print(f'R limilted, s = {s}')
+        # print(f'R limilted, s = {s}')
         return int(225)
     else:
-        print(f's = {s}')
+        # print(f's = {s}')
         mag = 0.3 * 255/(s**2)
         # print(s, mag)
         radius = math.sqrt(np.abs((2*(30*s)**2) * math.log(mag)))
@@ -85,26 +85,26 @@ def plotPoints(df, mat):
             # out.increment_rgb(x, y, z_const, z_const, z_const)
             mat[x,y] += z_const
 
-def overlayOnBackground():
+def overlayOnBackground(mat, color):
     c = 0.5
     cutoff = 40
-    color = Image.open("Color.jpg")
-    out = Image.open("Gray.jpg")
-    back = Image.open("RoomLayout1.jpg")
-    h = 1000
-    w = 1000
+    # color = Image.open("Color.jpg")
+    # out = Image.open("Gray.jpg")
+    back = Image.open("images/RoomLayout1.jpg")
     for y in range(h):
         for x in range(w):
             rbase, gbase, bbase = back.getpixel((x, y))
-            threshold, g, b = out.getpixel((x, y))
-            rn, gn, bn = color.getpixel((x, y))
+            # threshold, g, b = out.getpixel((x, y))
+            threshold = mat[x,y] #
+            colorPix = color.get_pixel(x, y)
             if threshold < cutoff:
                 c = 0.5 * (threshold/cutoff)**1.5
-            red = int((rbase + c * rn) / (1 + c))
-            green = int((gbase + c * gn) / (1 + c))
-            blue = int((bbase + c * bn) / (1 + c))
+            red = int((rbase + c * colorPix.red) / (1 + c))
+            green = int((gbase + c * colorPix.green) / (1 + c))
+            blue = int((bbase + c * colorPix.blue) / (1 + c))
             back.putpixel((x, y), (red, green, blue))
     back.show()
+    return back # return new image
 
 def main():
     args = sys.argv[1:]
@@ -117,7 +117,7 @@ def main():
     points_df = getPositions.pullData(iDB_client)
 
     mat = np.zeros((w,h))
-    out = SimpleImage.blank(w,h, 'black') # create an empty image
+    # out = SimpleImage.blank(w,h, 'black') # create an empty image
     
     points_df.apply(lambda x: plotPoints(x, mat), axis = 1)
 
@@ -133,6 +133,9 @@ def main():
                 out.set_pix(x, y, new_pix)
     # out.show() # programaticallly save it instead
     out.save('images/DWM_Test1.jpg')
+
+    #overlay with background image
+    overlayOnBackground(mat, out)
 
 if __name__ == '__main__':
     main()
