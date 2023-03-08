@@ -12,9 +12,9 @@ from simpleimage import SimpleImage
 from PIL import Image
 
 # image constants
-image_xy_zero = (670, 0)
-w = 1676
-h = 1373
+image_xy_zero = (67.0, 0.)
+w = 1674
+h = 1371
 
 
 def z_amp(x, y, s, mx, my):
@@ -29,7 +29,7 @@ def z_amp(x, y, s, mx, my):
     # >>> z_amp(1,1,1,1,1)
     # 1.0
     # """
-    mag = 0.3 * 255/(s**2)
+    mag = 0.1 * 255/(s**2)
     z = round(mag*math.exp(-((mx - x)**2 + (my - y)**2)/(2*(30*s)**2)))
     return z
 
@@ -42,7 +42,7 @@ def z_radius(s):
         return int(225)
     else:
         # print(f's = {s}')
-        mag = 0.3 * 255/(s**2)
+        mag = 0.1 * 255/(s**2)
         # print(s, mag)
         radius = math.sqrt(np.abs((2*(30*s)**2) * math.log(mag)))
         return int(round(radius *1.25)) # include a fudge factor
@@ -70,8 +70,10 @@ def rgb(minimum, maximum, value):
 
 def plotPoints(df, mat):
     s = 100/df['position_quality'] # extra transform
-    mx = int(df['position_x'] + image_xy_zero[0])
-    my = int(df['position_y'] + image_xy_zero[1])
+    mx = int(df['position_x']*100 + image_xy_zero[0])
+    my = int(df['position_y']*100 + image_xy_zero[1])
+    my = h - my # reverse direction
+    # mx = w - mx # reverse reverse!
     radius = z_radius(s) #how far do we need to search?
 
     for y in range(my - radius, my + radius):
@@ -90,12 +92,14 @@ def overlayOnBackground(mat, color):
     cutoff = 40
     # color = Image.open("Color.jpg")
     # out = Image.open("Gray.jpg")
-    back = Image.open("images/RoomLayout1.jpg")
+    back = Image.open("images/RoomLayoutTables.jpg")
     for y in range(h):
         for x in range(w):
+            threshold = mat[x,y] # from B&W image
+            if threshold < 1:
+                continue #no change, don't do math here
             rbase, gbase, bbase = back.getpixel((x, y))
             # threshold, g, b = out.getpixel((x, y))
-            threshold = mat[x,y] #
             colorPix = color.get_pixel(x, y)
             if threshold < cutoff:
                 c = 0.5 * (threshold/cutoff)**1.5
@@ -103,7 +107,7 @@ def overlayOnBackground(mat, color):
             green = int((gbase + c * colorPix.green) / (1 + c))
             blue = int((bbase + c * colorPix.blue) / (1 + c))
             back.putpixel((x, y), (red, green, blue))
-    back.show()
+    # back.show()
     return back # return new image
 
 def main():
@@ -117,7 +121,7 @@ def main():
     points_df = getPositions.pullData(iDB_client)
 
     mat = np.zeros((w,h))
-    # out = SimpleImage.blank(w,h, 'black') # create an empty image
+    out = SimpleImage.blank(w,h, 'black') # create an empty image
     
     points_df.apply(lambda x: plotPoints(x, mat), axis = 1)
 
@@ -135,7 +139,8 @@ def main():
     out.save('images/DWM_Test1.jpg')
 
     #overlay with background image
-    overlayOnBackground(mat, out)
+    overlay = overlayOnBackground(mat, out)
+    overlay.save('images/DWM_test2_overlay.jpg')
 
 if __name__ == '__main__':
     main()

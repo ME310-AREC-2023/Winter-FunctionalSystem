@@ -11,7 +11,7 @@ import pandas as pd
 query = """SELECT *
 FROM "mqtt_consumer"
 WHERE
-time >= timestamp '2023-03-07T23:00:00.000Z' AND time <= timestamp '2023-03-07T23:20:00.000Z'
+time >= timestamp '2023-03-08T03:57:00.000Z' AND time <= timestamp '2023-03-08T04:00:00.000Z'
 AND
 ("position_x" IS NOT NULL)"""
 
@@ -34,7 +34,7 @@ def pullData(query_client):
     df = data.to_pandas().sort_values(by="time")
     # df = df.mutate(q = 100/int(p))
     # df['q'] = df.transform(lambda x: 100/x['position_quality'])
-    print(df)
+    # print(df)
     # df = df.select() #limit data?
     return df #send it back up
 
