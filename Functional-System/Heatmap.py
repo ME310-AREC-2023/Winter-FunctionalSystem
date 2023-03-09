@@ -5,8 +5,10 @@ import sys
 import math
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import readPosText  # local lib
 import pullPos_InfluxDB as getPositions
+import pushLocPop_InfluxDB as pushLocPop
 
 from simpleimage import SimpleImage
 from PIL import Image
@@ -87,6 +89,18 @@ def plotPoints(df, mat):
             # out.increment_rgb(x, y, z_const, z_const, z_const)
             mat[x,y] += z_const
 
+def remapColorScheme(mat):
+    out = SimpleImage.blank(w, h, 'black') # create locally
+    for y in range(h):
+        for x in range(w):
+            pix = mat[x,y]
+            if (abs(pix) < 0.01):
+                continue #don't recalculate/reset pixel
+            else:
+                new_pix = rgb(0, 255, pix)
+                out.set_pix(x, y, new_pix)
+    return out
+
 def overlayOnBackground(mat, color):
     c = 0.5
     cutoff = 40
@@ -110,9 +124,41 @@ def overlayOnBackground(mat, color):
     # back.show()
     return back # return new image
 
+def LocationPopularity(mat):
+    totalSum = np.sum(mat.sum()) #total summation
+    # print(totalSum)
+
+    locales = {'AREC':((0,328), (460, 930)), 'Volvo':((0,938),(460, 1390)),\
+               'Avatar':((902, 910), (1364, 1432)), 'JnJ':((902, 380), (1364, 900))}
+    sums = {}
+    percentages = {} # blank for now
+    remaining = 100.0 #how much is unaccounted for?
+    for key in locales:
+        indices = locales[key] # extrac tuples
+        sums[key] = np.sum(mat[indices[0][0]:indices[1][0], indices[0][1]:indices[1][1]])
+        percentages[key] = [sums[key]/totalSum * 100]
+        remaining -= percentages[key][0] # how much is left?
+        print(f'{key}: {sums[key]}, {percentages[key]}%')
+    percentages['Travelling'] = [remaining]
+    df = pd.DataFrame(percentages).T
+    print(df)
+
+    # send to InfluxDB
+    # pushLocPop.writeLocationPop(percentages)
+
+    # datar = list(percentages.values())
+    # labellos = list(percentages.columns)
+    # plt.bar(range(len(percentages)), datar, tick_label=labellos)
+    # plt.show()
+    # df = percentages.T # rotate for clarity
+    plot = df.plot.bar(legend=False, rot=0, \
+                       title='Location Popularity in ME310',\
+                       ylabel='% Time Spent with each Team')
+    fig = plot.get_figure()
+    fig.savefig('images/DWM-LocPop.png')
+
 def main():
     args = sys.argv[1:]
-    out = SimpleImage.blank(w, h, 'black')
     points_df = pd.DataFrame()
 
     # open the file, read in the positions
@@ -126,21 +172,15 @@ def main():
     points_df.apply(lambda x: plotPoints(x, mat), axis = 1)
 
 
-    for y in range(h):
-        for x in range(w):
-            # pix = out.get_pixel(x, y)
-            pix = mat[x,y]
-            if (abs(pix) < 0.01):
-                continue #don't recalculate/reset pixel
-            else:
-                new_pix = rgb(0, 255, pix)
-                out.set_pix(x, y, new_pix)
-    # out.show() # programaticallly save it instead
+    out = remapColorScheme(mat)
     out.save('images/DWM_Test1.jpg')
 
+    # Location Popularity
+    LocationPopularity(mat)
+
     #overlay with background image
-    overlay = overlayOnBackground(mat, out)
-    overlay.save('images/DWM_test2_overlay.jpg')
+    # overlay = overlayOnBackground(mat, out)
+    # overlay.save('images/DWM_test2_overlay.jpg')
 
 if __name__ == '__main__':
     main()
