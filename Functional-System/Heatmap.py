@@ -5,6 +5,7 @@ import sys
 import math
 import numpy as np
 import pandas as pd
+import time
 import matplotlib.pyplot as plt
 import readPosText  # local lib
 import pullPos_InfluxDB as getPositions
@@ -17,6 +18,11 @@ from PIL import Image
 image_xy_zero = (67.0, 0.)
 w = 1674
 h = 1371
+magScalar = 0.1 # normal dist mangitude scalar
+
+# global var
+filename = 'images/test' #def save area
+saveProgress = False # default to not saving in-progress pictures
 
 
 def z_amp(x, y, s, mx, my):
@@ -31,7 +37,7 @@ def z_amp(x, y, s, mx, my):
     # >>> z_amp(1,1,1,1,1)
     # 1.0
     # """
-    mag = 0.1 * 255/(s**2)
+    mag = magScalar * 255/(s**2)
     z = round(mag*math.exp(-((mx - x)**2 + (my - y)**2)/(2*(30*s)**2)))
     return z
 
@@ -44,7 +50,7 @@ def z_radius(s):
         return int(225)
     else:
         # print(f's = {s}')
-        mag = 0.1 * 255/(s**2)
+        mag = magScalar * 255/(s**2)
         # print(s, mag)
         radius = math.sqrt(np.abs((2*(30*s)**2) * math.log(mag)))
         return int(round(radius *1.25)) # include a fudge factor
@@ -76,6 +82,8 @@ def plotPoints(df, mat):
     my = int(df['position_y']*100 + image_xy_zero[1])
     my = h - my # reverse direction
     # mx = w - mx # reverse reverse!
+    if (mx < 370 and my < 300):
+        return #skip if not "worn"
     radius = z_radius(s) #how far do we need to search?
 
     for y in range(my - radius, my + radius):
@@ -127,6 +135,10 @@ def overlayOnBackground(mat, color):
 def LocationPopularity(mat):
     totalSum = np.sum(mat.sum()) #total summation
     # print(totalSum)
+    if (totalSum < 1):
+        #something very bad happened, skip!
+        print('Utilization is too low!')
+        return
 
     locales = {'AREC':((0,328), (460, 930)), 'Volvo':((0,938),(460, 1390)),\
                'Avatar':((902, 910), (1364, 1432)), 'JnJ':((902, 380), (1364, 900))}
@@ -138,27 +150,27 @@ def LocationPopularity(mat):
         sums[key] = np.sum(mat[indices[0][0]:indices[1][0], indices[0][1]:indices[1][1]])
         percentages[key] = [sums[key]/totalSum * 100]
         remaining -= percentages[key][0] # how much is left?
-        print(f'{key}: {sums[key]}, {percentages[key]}%')
+        # print(f'{key}: {sums[key]}, {percentages[key]}%')
     percentages['Travelling'] = [remaining]
     df = pd.DataFrame(percentages).T
-    print(df)
+    # print(df)
 
     # send to InfluxDB
     # pushLocPop.writeLocationPop(percentages)
-
-    # datar = list(percentages.values())
-    # labellos = list(percentages.columns)
-    # plt.bar(range(len(percentages)), datar, tick_label=labellos)
-    # plt.show()
-    # df = percentages.T # rotate for clarity
     plot = df.plot.bar(legend=False, rot=0, \
-                       title='Location Popularity in ME310',\
+                       title=f"Location Popularity in ME310 at {time.strftime('%H:%M')}",\
                        ylabel='% Time Spent with each Team')
     fig = plot.get_figure()
-    fig.savefig('images/DWM-LocPop.png')
+    return fig
+    # fig.savefig(filename+ '_LocPop.png')
 
-def main():
-    args = sys.argv[1:]
+def main(args):
+    filename = args[0] # where to save?
+    if (len(args) > 0):
+        saveProgress = True #enable us to save other images
+        timestr = time.strftime("%y%m%d-%H%M%S")
+    print(filename + '/bckgnd/' + timestr + '.jpg')
+
     points_df = pd.DataFrame()
 
     # open the file, read in the positions
@@ -173,16 +185,19 @@ def main():
 
 
     out = remapColorScheme(mat)
-    out.save('images/DWM_Test1.jpg')
+    if saveProgress:
+        out.save(filename + '/bckgnd/' + timestr + '.jpg')
 
     # Location Popularity
-    LocationPopularity(mat)
+    fig = LocationPopularity(mat)
+    if (fig is not None):
+        fig.savefig(filename+ '/LocPop/' + timestr + '.jpg')
 
     #overlay with background image
-    # overlay = overlayOnBackground(mat, out)
-    # overlay.save('images/DWM_test2_overlay.jpg')
+    overlay = overlayOnBackground(mat, out)
+    overlay.save(filename + '/overlay/' + timestr + '.jpg')
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
 
 

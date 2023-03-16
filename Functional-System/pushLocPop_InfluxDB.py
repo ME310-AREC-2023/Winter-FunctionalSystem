@@ -36,7 +36,7 @@ def main():
     df = pd.DataFrame({'AREC':[15], 'Volvo':[10], 'Avatar':[20], 'JnJ': [25], 'Travelling':[30]})
     df = df.T #transpose for data clarity?
     plot = df.plot.bar(legend=False, rot=0, \
-                       title='Location Popularity in ME310',\
+                       title= f"Location Popularity in ME310 at {time.strftime('%H:%M')}",\
                        ylabel='% Time Spent with each Team')
     fig = plot.get_figure()
     fig.savefig('images/test-LocPop.png')
